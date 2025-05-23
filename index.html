@@ -76,6 +76,9 @@
     document.getElementById('nombre').textContent = nombre ?? 'No especificado';
     document.getElementById('cbu').textContent = cbu ?? 'No especificado';
 
+    // Elimina los parámetros de la URL sin recargar
+    window.history.replaceState({}, document.title, window.location.pathname);
+
     function copiarCBU() {
       const texto = document.getElementById('cbu').textContent;
       if (!texto || texto === 'No especificado') {
