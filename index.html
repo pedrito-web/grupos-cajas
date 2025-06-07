@@ -11,12 +11,10 @@
       color: #333;
       display: flex;
       flex-direction: column;
-      align-content: center;
-      justify-content: center;
       align-items: center;
-      border: 1px solid #e9e9e9;
       margin: 30px;
       padding: 10px;
+      border: 1px solid #e9e9e9;
       border-radius: 5px;
       box-shadow: 1px 1px 10px;
     }
@@ -59,29 +57,75 @@
   </style>
 </head>
 <body>
-  <h1>Datos de la Cuenta </h1>
-  <p><strong>Recordar mandar Captura del comprobante </strong></p>
+  <h1>Datos de la Cuenta</h1>
+  <p><strong>Recordar mandar Captura del comprobante</strong></p>
   <p><strong>⚠️ No el Archivo ⚠️</strong></p>
-  <p></p>
   <p><strong>Nombre:</strong> <span id="nombre"></span></p>
   <p><strong>CBU:</strong> <span id="cbu"></span></p>
   <button class="copiar-btn" onclick="copiarCBU()">Copiar CBU</button>
   <div class="mensaje" id="mensaje"></div>
 
   <script>
+    function obtenerHoraArgentina() {
+      const formatter = new Intl.DateTimeFormat('es-AR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: 'America/Argentina/Buenos_Aires'
+      });
+      const [horaStr, minutoStr] = formatter.format(new Date()).split(':');
+      return {
+        hora: parseInt(horaStr, 10),
+        minuto: parseInt(minutoStr, 10)
+      };
+    }
+
+    function dentroDelHorario(horario, horaActual, minutoActual) {
+      if (!horario.includes('-')) return false;
+      const [inicio, fin] = horario.split('-');
+      const [hInicio, mInicio] = inicio.split(':').map(Number);
+      const [hFin, mFin] = fin.split(':').map(Number);
+
+      const minutosActual = horaActual * 60 + minutoActual;
+      const minutosInicio = hInicio * 60 + mInicio;
+      const minutosFin = hFin * 60 + mFin;
+
+      return minutosActual >= minutosInicio && minutosActual <= minutosFin;
+    }
+
     const params = new URLSearchParams(window.location.search);
-    const nombre = params.get('nombre');
-    const cbu = params.get('cbu');
+    const nombres = params.getAll('nombre');
+    const cbus = params.getAll('cbu');
+    const horarios = params.getAll('horario');
 
-    document.getElementById('nombre').textContent = nombre ?? 'No especificado';
-    document.getElementById('cbu').textContent = cbu ?? 'No especificado';
+    const { hora: horaActual, minuto: minutoActual } = obtenerHoraArgentina();
 
-    // Elimina los parámetros de la URL sin recargar
+    let encontrado = false;
+
+    for (let i = 0; i < nombres.length; i++) {
+      const nombre = nombres[i];
+      const cbu = cbus[i];
+      const horario = horarios[i];
+
+      if (dentroDelHorario(horario, horaActual, minutoActual)) {
+        document.getElementById('nombre').textContent = nombre ?? 'No especificado';
+        document.getElementById('cbu').textContent = cbu ?? 'No especificado';
+        encontrado = true;
+        break;
+      }
+    }
+
+    if (!encontrado) {
+      document.getElementById('nombre').textContent = 'No disponible';
+      document.getElementById('cbu').textContent = 'No disponible en este horario';
+    }
+
+    // Limpia la URL
     window.history.replaceState({}, document.title, window.location.pathname);
 
     function copiarCBU() {
       const texto = document.getElementById('cbu').textContent;
-      if (!texto || texto === 'No especificado') {
+      if (!texto || texto === 'No disponible' || texto === 'No disponible en este horario') {
         alert('No hay un CBU válido para copiar.');
         return;
       }
